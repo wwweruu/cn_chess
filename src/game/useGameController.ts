@@ -32,14 +32,34 @@ const defaultSettings: GameSettings = {
   cameraShake: true,
 };
 
+const modelQualities: readonly GameSettings["quality"][] = ["auto", "high", "low"];
+const effectLevels: readonly GameSettings["effects"][] = ["full", "reduced", "off"];
+
 function loadSettings(): GameSettings {
   try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return { ...defaultSettings };
+    }
+    // Stored settings are untrusted input, like a saved game: accept only
+    // known values per field so a corrupt or stale record heals field by
+    // field instead of leaking invalid state into the HUD and scene.
+    const candidate = parsed as Partial<Record<keyof GameSettings, unknown>>;
     return {
-      ...defaultSettings,
-      ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}"),
+      quality: modelQualities.includes(candidate.quality as GameSettings["quality"])
+        ? (candidate.quality as GameSettings["quality"])
+        : defaultSettings.quality,
+      effects: effectLevels.includes(candidate.effects as GameSettings["effects"])
+        ? (candidate.effects as GameSettings["effects"])
+        : defaultSettings.effects,
+      sound: typeof candidate.sound === "boolean" ? candidate.sound : defaultSettings.sound,
+      cameraShake:
+        typeof candidate.cameraShake === "boolean"
+          ? candidate.cameraShake
+          : defaultSettings.cameraShake,
     };
   } catch {
-    return defaultSettings;
+    return { ...defaultSettings };
   }
 }
 

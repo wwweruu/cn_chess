@@ -39,6 +39,34 @@ describe("game controller", () => {
     },
   );
 
+  it("keeps valid stored settings and heals invalid fields back to defaults", () => {
+    localStorage.setItem(
+      "xuanjia-xiangqi-settings",
+      JSON.stringify({ quality: "bogus", effects: 123, sound: false, cameraShake: null, stale: true }),
+    );
+    const { result } = renderHook(() => useGameController());
+    expect(result.current.settings).toEqual({
+      quality: "auto",
+      effects: "full",
+      sound: false,
+      cameraShake: true,
+    });
+  });
+
+  it.each(['"hello"', "[1,2]", "null", "42"])(
+    "falls back to default settings for a non-object record: %s",
+    (raw) => {
+      localStorage.setItem("xuanjia-xiangqi-settings", raw);
+      const { result } = renderHook(() => useGameController());
+      expect(result.current.settings).toEqual({
+        quality: "auto",
+        effects: "full",
+        sound: true,
+        cameraShake: true,
+      });
+    },
+  );
+
   it("persists settings for the next controller", () => {
     const { result, unmount } = renderHook(() => useGameController());
     act(() => result.current.updateSettings({ sound: false, quality: "low" }));
